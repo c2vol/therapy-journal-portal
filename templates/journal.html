@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>New entry</h2>
+  <form method="post" action="{{ url_for('add_entry') }}" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <textarea id="entry-text" name="text" rows="8" placeholder="What's on your mind? Ramble as much as you like." required></textarea>
+    <div class="row">
+      <button type="button" id="dictate" class="secondary" hidden>🎤 Dictate</button>
+      <button>Save entry</button>
+    </div>
+    <p id="dictate-note" class="hint" hidden>
+      Dictation uses your browser's speech recognition. In Chrome and Edge, your audio is sent to Google or Microsoft to turn it into text; Safari may do it on your device.
+    </p>
+  </form>
+</section>
+
+<section class="card">
+  <h2>For your next session</h2>
+  <p>
+    {% if last_session %}Last session marked {{ last_session|pretty_date }}.{% else %}No session marked yet, so this covers every entry.{% endif %}
+    {{ since_count }} entr{{ 'y' if since_count == 1 else 'ies' }} {{ 'since then' if last_session else 'so far' }}.
+  </p>
+  <div class="row">
+    <form method="post" action="{{ url_for('create_summary') }}" id="summary-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button {% if not since_count %}disabled{% endif %}>Summarize for my therapist</button>
+    </form>
+    <form method="post" action="{{ url_for('mark_session') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="secondary">I had a session today</button>
+    </form>
+  </div>
+  <p class="hint">Summarizing sends these entries to Anthropic's API (Claude) and nothing else. It organizes what you wrote without interpreting or diagnosing.</p>
+  {% if summaries %}
+  <h3>Past summaries</h3>
+  <ul class="plain">
+    {% for s in summaries %}
+    <li><a href="{{ url_for('show_summary', summary_id=s.id) }}">{{ s.created_at|pretty_date }}</a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Entries</h2>
+  {% for e in entries %}
+  <article class="entry">
+    <div class="meta">
+      <time datetime="{{ e.created_at }}">{{ e.created_at|pretty_date }}</time>
+      {% if last_session and e.created_at <= last_session %}<span class="tag">before last session</span>{% endif %}
+      <form method="post" action="{{ url_for('delete_entry', entry_id=e.id) }}" class="inline delete-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="link danger">Delete</button>
+      </form>
+    </div>
+    <div class="body">{{ e.text }}</div>
+  </article>
+  {% else %}
+  <p class="hint">No entries yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='journal.js') }}"></script>{% endblock %}

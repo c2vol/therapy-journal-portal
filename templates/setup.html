@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Set up your journal{% endblock %}
+{% block content %}
+<h1>Set up your journal</h1>
+<p>Choose a password. It locks everything you write, so pick something only you know.</p>
+<p class="warn"><strong>There is no password reset.</strong> Your entries are encrypted with this password, so if you forget it, they can't be recovered by anyone, including you.</p>
+<form method="post" class="stack">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Password (at least {{ min_len }} characters)
+    <input type="password" name="password" minlength="{{ min_len }}" required autofocus autocomplete="new-password">
+  </label>
+  <label>Type it again
+    <input type="password" name="confirm" minlength="{{ min_len }}" required autocomplete="new-password">
+  </label>
+  <button>Create journal</button>
+</form>
+{% endblock %}
