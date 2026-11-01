@@ -49,6 +49,16 @@ def format_entries(entries: list[dict]) -> str:
     return "\n\n".join(parts)
 
 
+def build_prompt(entries: list[dict]) -> str:
+    """The same instructions and entries as an API call, as one block of text you
+    can paste into a chat in the Claude app (the free route: no API key needed)."""
+    return (
+        SYSTEM_PROMPT
+        + "\n\nHere are my journal entries since my last session:\n\n"
+        + format_entries(entries)
+    )
+
+
 def summarize(entries: list[dict], client: anthropic.Anthropic | None = None) -> str:
     if not entries:
         raise SummaryError("There are no entries in this period to summarize.")

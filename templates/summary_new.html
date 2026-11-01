@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Make a summary{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('journal') }}">← Back to journal</a></p>
+<h1>Make a summary with your Claude app</h1>
+<p class="hint">
+  {{ count }} entr{{ 'y' if count == 1 else 'ies' }} {{ 'since your last session' if since else 'so far' }}.
+  This is the free way: no API key, no cost beyond the Claude app you already use.
+</p>
+
+<section class="card">
+  <h2>1. Copy your entries</h2>
+  <p>This copies your entries along with instructions telling Claude to organize them without interpreting or diagnosing.</p>
+  <textarea id="prompt" rows="8" readonly>{{ prompt }}</textarea>
+  <div class="row"><button type="button" id="copy">Copy</button><span id="copied" class="hint" aria-live="polite"></span></div>
+</section>
+
+<section class="card">
+  <h2>2. Paste into a new chat in Claude</h2>
+  <p>Open the Claude app or claude.ai, start a new chat, paste, and send. If your app offers an incognito chat, use it, so your entries aren't kept in your chat history.</p>
+</section>
+
+<section class="card">
+  <h2>3. Paste Claude's summary here</h2>
+  <form method="post" action="{{ url_for('save_manual_summary') }}" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <textarea name="text" rows="12" placeholder="Paste the summary Claude wrote" required></textarea>
+    <div class="row"><button>Save summary</button></div>
+  </form>
+  <p class="hint">It's saved encrypted like your entries, and you can edit, download or print it next.</p>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='summary_new.js') }}"></script>{% endblock %}

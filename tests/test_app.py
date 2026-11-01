@@ -36,7 +36,8 @@ def setup(tmp_path):
         calls.append(audio)
         return "I talked about my week"
 
-    app = create_app(str(db), summarize_fn=fake_summarize, transcribe_fn=fake_transcribe)
+    app = create_app(str(db), summarize_fn=fake_summarize, transcribe_fn=fake_transcribe,
+                     api_enabled=True)
     client = app.test_client()
     post(client, "/setup", password=PASSWORD, confirm=PASSWORD)
     return SimpleNamespace(app=app, client=client, db=db, calls=calls)
@@ -172,3 +173,27 @@ def test_transcribe_requires_login(tmp_path):
 def test_transcribe_empty_audio_errors():
     with pytest.raises(transcriber.TranscriptionError):
         transcriber.transcribe(b"")
+
+
+def test_free_summary_without_api_key(tmp_path):
+    db = tmp_path / "j.db"
+    client = create_app(str(db), api_enabled=False).test_client()
+    post(client, "/setup", password=PASSWORD, confirm=PASSWORD)
+    post(client, "/entries", text="Slept badly, worried about the move")
+    page = client.get("/")
+    assert b"/summaries/new" in page.data
+    assert b"API key" not in page.data or b"no API key" in page.data
+    # Posting to the API route without a key sends you to the free route instead.
+    assert post(client, "/summaries").request.path == "/summaries/new"
+    new = client.get("/summaries/new")
+    assert b"Slept badly, worried about the move" in new.data
+    assert b"without interpreting" in new.data or b"Do not diagnose" in new.data
+    r = post(client, "/summaries/manual", text="## Overview\nPasted from Claude.")
+    assert b"Pasted from Claude." in r.data
+    assert b"Pasted from Claude." not in db.read_bytes()
+
+
+def test_build_prompt_contains_rules_and_entries():
+    text = summarizer.build_prompt([{"created_at": "2026-11-01T10:00:00+00:00", "text": "hello"}])
+    assert text.startswith(summarizer.SYSTEM_PROMPT)
+    assert "hello" in text

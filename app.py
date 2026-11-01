@@ -26,7 +26,7 @@ LOCKOUT_SECONDS = 60
 
 
 def create_app(db_path: str | None = None, summarize_fn=None,
-               transcribe_fn=None) -> Flask:
+               transcribe_fn=None, api_enabled: bool | None = None) -> Flask:
     app = Flask(__name__)
     # A fresh random secret on every start. Restarting the app signs you out,
     # which is fine because the unlocked key lives only in memory anyway.
@@ -40,6 +40,11 @@ def create_app(db_path: str | None = None, summarize_fn=None,
     vault = Vault(db_path or os.environ.get("JOURNAL_DB", "data/journal.db"))
     summarize_fn = summarize_fn or summarizer.summarize
     transcribe_fn = transcribe_fn or transcriber.transcribe
+    # With an Anthropic API key, the app can summarize by itself (costs a few cents).
+    # Without one, everything still works: you copy the entries into your own
+    # Claude app and paste the summary back, which costs nothing extra.
+    if api_enabled is None:
+        api_enabled = bool(os.environ.get("ANTHROPIC_API_KEY"))
 
     # Unlocked keys, kept only in this process's memory: {session_id: [key, last_seen]}
     unlocked: dict[str, list] = {}
@@ -168,6 +173,7 @@ def create_app(db_path: str | None = None, summarize_fn=None,
             last_session=last,
             since_count=since_count,
             summaries=vault.list_summaries(),
+            api_enabled=api_enabled,
         )
 
     @app.post("/entries")
@@ -208,9 +214,33 @@ def create_app(db_path: str | None = None, summarize_fn=None,
 
     # ---- summaries -----------------------------------------------------------
 
+    @app.get("/summaries/new")
+    @login_required
+    def new_summary():
+        since = vault.last_session()
+        entries = vault.list_entries(g.key, since=since)
+        if not entries:
+            flash("There are no entries in this period to summarize.")
+            return redirect(url_for("journal"))
+        return render_template("summary_new.html", prompt=summarizer.build_prompt(entries),
+                               count=len(entries), since=since)
+
+    @app.post("/summaries/manual")
+    @login_required
+    def save_manual_summary():
+        text = request.form.get("text", "").strip()
+        if not text:
+            flash("Paste the summary from Claude into the box first.")
+            return redirect(url_for("new_summary"))
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        summary_id = vault.save_summary(g.key, text, vault.last_session(), now)
+        return redirect(url_for("show_summary", summary_id=summary_id))
+
     @app.post("/summaries")
     @login_required
     def create_summary():
+        if not api_enabled:
+            return redirect(url_for("new_summary"))
         since = vault.last_session()
         entries = vault.list_entries(g.key, since=since)
         try:

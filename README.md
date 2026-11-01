@@ -11,14 +11,13 @@ portal for your therapist can come later, once you know what she wants.
 
 ## Running it
 
-You need Python 3.10 or newer and an Anthropic API key
-(from https://console.anthropic.com).
+**It's free to run.** You need Python 3.10 or newer. An Anthropic API key is
+optional (see "Summaries" below).
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=sk-ant-...  # Windows: set ANTHROPIC_API_KEY=...
 python app.py
 ```
 
@@ -36,11 +35,22 @@ To run the tests: `pip install pytest && pytest`.
 1. Whenever something's on your mind, press **Tap to talk** and say it, as long
    as you like. Tap again when you're done. What you said shows up as text so
    you can fix any mistakes, then press **Save entry**. You can also just type.
-2. Before a session, press **Summarize for my therapist**. Read it over and fix
-   anything that doesn't sound like you, then **Download** it or
-   **Print / save as PDF**.
+2. Before a session, press **Summarize for my therapist** (see "Summaries"
+   below). Read the result over and fix anything that doesn't sound like you,
+   then **Download** it or **Print / save as PDF**.
 3. After the session, press **I had a session today**. The next summary will
    only cover entries written after that.
+
+## Summaries: free or automatic
+
+- **Free (the default).** The app gives you your entries plus instructions in
+  one block. You press **Copy**, paste it into a new chat in your Claude app or
+  claude.ai, then paste Claude's summary back into the app, where it's saved
+  encrypted. It costs nothing beyond the Claude app you already use. Use an
+  incognito chat if you have one, so the entries don't stay in your chat history.
+- **Automatic (optional, paid).** If you start the app with an Anthropic API key
+  (`export ANTHROPIC_API_KEY=sk-ant-...` before `python app.py`), the button
+  makes the summary by itself. Each summary costs a few cents of API usage.
 
 ## Privacy: what's protected and what isn't
 
@@ -58,9 +68,9 @@ To run the tests: `pip install pytest && pytest`.
   your network can't reach it. Your data never goes into this Git repo
   (`data/` is in `.gitignore`).
 - **What leaves your computer:**
-  - When you press **Summarize**, the entries in that period are sent to
-    Anthropic's API. Anthropic doesn't train models on API data by default;
-    see their privacy policy for how long it's kept.
+  - Summaries: the entries in that period go to Claude, either through the
+    chat you paste them into (free route) or Anthropic's API (automatic route).
+    See Anthropic's privacy policy for how each is handled.
   - **Voice** never leaves your computer. Recordings are transcribed locally
     with the open Whisper model and then thrown away; only the text is kept
     (encrypted). The one network step is a one-time download of the speech

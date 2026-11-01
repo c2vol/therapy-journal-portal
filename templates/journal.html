@@ -23,16 +23,26 @@
     {{ since_count }} entr{{ 'y' if since_count == 1 else 'ies' }} {{ 'since then' if last_session else 'so far' }}.
   </p>
   <div class="row">
+    {% if api_enabled %}
     <form method="post" action="{{ url_for('create_summary') }}" id="summary-form">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <button {% if not since_count %}disabled{% endif %}>Summarize for my therapist</button>
     </form>
+    {% elif since_count %}
+    <a class="button" href="{{ url_for('new_summary') }}">Summarize for my therapist</a>
+    {% else %}
+    <button disabled>Summarize for my therapist</button>
+    {% endif %}
     <form method="post" action="{{ url_for('mark_session') }}">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <button class="secondary">I had a session today</button>
     </form>
   </div>
+  {% if api_enabled %}
   <p class="hint">Summarizing sends these entries to Anthropic's API (Claude) and nothing else. It organizes what you wrote without interpreting or diagnosing.</p>
+  {% else %}
+  <p class="hint">You'll copy these entries into your own Claude app, and it organizes them without interpreting or diagnosing. Free, no API key needed.</p>
+  {% endif %}
   {% if summaries %}
   <h3>Past summaries</h3>
   <ul class="plain">
