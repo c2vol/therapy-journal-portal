@@ -1,0 +1,8 @@
+# Your journal lives here. Never commit it.
+data/
+*.db
+*.db-journal
+.env
+.venv/
+__pycache__/
+.pytest_cache/
