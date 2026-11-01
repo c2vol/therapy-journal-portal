@@ -4,7 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
+import io
+
 import summarize as summarizer
+import transcribe as transcriber
 from app import create_app
 
 PASSWORD = "a long test passphrase"
@@ -29,7 +32,11 @@ def setup(tmp_path):
         return "## Overview\nA fake summary."
 
     db = tmp_path / "journal.db"
-    app = create_app(str(db), summarize_fn=fake_summarize)
+    def fake_transcribe(audio):
+        calls.append(audio)
+        return "I talked about my week"
+
+    app = create_app(str(db), summarize_fn=fake_summarize, transcribe_fn=fake_transcribe)
     client = app.test_client()
     post(client, "/setup", password=PASSWORD, confirm=PASSWORD)
     return SimpleNamespace(app=app, client=client, db=db, calls=calls)
@@ -141,3 +148,27 @@ def test_summarize_refusal_is_reported():
 def test_summarize_needs_entries():
     with pytest.raises(summarizer.SummaryError):
         summarizer.summarize([], client=FakeClient(None))
+
+
+def test_transcribe_returns_text_and_saves_nothing(setup):
+    setup.client.get("/")
+    r = setup.client.post("/transcribe", data={
+        "csrf": csrf_of(setup.client),
+        "audio": (io.BytesIO(b"fake-audio-bytes"), "recording"),
+    }, content_type="multipart/form-data")
+    assert r.get_json() == {"text": "I talked about my week"}
+    assert setup.calls == [b"fake-audio-bytes"]
+    assert b"fake-audio-bytes" not in setup.db.read_bytes()
+    assert sqlite3.connect(setup.db).execute("SELECT COUNT(*) FROM entries").fetchone()[0] == 0
+
+
+def test_transcribe_requires_login(tmp_path):
+    client = create_app(str(tmp_path / "j.db"), transcribe_fn=lambda a: "x").test_client()
+    client.get("/setup")
+    r = client.post("/transcribe", data={"csrf": csrf_of(client)})
+    assert r.status_code == 302
+
+
+def test_transcribe_empty_audio_errors():
+    with pytest.raises(transcriber.TranscriptionError):
+        transcriber.transcribe(b"")

@@ -12,10 +12,11 @@ import time
 from datetime import datetime, timezone
 from functools import wraps
 
-from flask import (Flask, Response, abort, flash, g, redirect, render_template,
-                   request, session, url_for)
+from flask import (Flask, Response, abort, flash, g, jsonify, redirect,
+                   render_template, request, session, url_for)
 
 import summarize as summarizer
+import transcribe as transcriber
 from vault import Vault, WrongPassword
 
 IDLE_TIMEOUT_SECONDS = 20 * 60   # lock after 20 minutes without activity
@@ -24,7 +25,8 @@ MAX_FAILED_LOGINS = 5
 LOCKOUT_SECONDS = 60
 
 
-def create_app(db_path: str | None = None, summarize_fn=None) -> Flask:
+def create_app(db_path: str | None = None, summarize_fn=None,
+               transcribe_fn=None) -> Flask:
     app = Flask(__name__)
     # A fresh random secret on every start. Restarting the app signs you out,
     # which is fine because the unlocked key lives only in memory anyway.
@@ -32,10 +34,12 @@ def create_app(db_path: str | None = None, summarize_fn=None) -> Flask:
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Strict",
+        MAX_CONTENT_LENGTH=50 * 1024 * 1024,  # recordings up to ~50 MB
     )
 
     vault = Vault(db_path or os.environ.get("JOURNAL_DB", "data/journal.db"))
     summarize_fn = summarize_fn or summarizer.summarize
+    transcribe_fn = transcribe_fn or transcriber.transcribe
 
     # Unlocked keys, kept only in this process's memory: {session_id: [key, last_seen]}
     unlocked: dict[str, list] = {}
@@ -188,6 +192,19 @@ def create_app(db_path: str | None = None, summarize_fn=None) -> Flask:
         vault.mark_session()
         flash("Marked a therapy session today. New entries start a fresh period.")
         return redirect(url_for("journal"))
+
+    # ---- voice ---------------------------------------------------------------
+
+    @app.post("/transcribe")
+    @login_required
+    def transcribe_audio():
+        # Your recording arrives here, is turned into text on this computer,
+        # and is then thrown away. Only the text goes back to the page.
+        audio = request.files.get("audio")
+        try:
+            return jsonify(text=transcribe_fn(audio.read() if audio else b""))
+        except transcriber.TranscriptionError as e:
+            return jsonify(error=str(e)), 400
 
     # ---- summaries -----------------------------------------------------------
 

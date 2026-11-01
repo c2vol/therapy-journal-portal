@@ -41,3 +41,11 @@ ul.plain { padding-left: 18px; }
 .print { max-width: 720px; margin: 24px auto; padding: 0 16px; background: #fff; color: #222; }
 pre.summary { white-space: pre-wrap; font: inherit; }
 @media print { .noprint { display: none; } }
+.talk { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 8px 0 16px; text-align: center; }
+.record { display: inline-flex; align-items: center; gap: 10px; font-size: 19px; padding: 16px 28px;
+          border-radius: 999px; min-width: 240px; justify-content: center; }
+.record .dot { width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+.record.on { background: var(--danger); }
+.record.on .dot { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .record.on .dot { animation: none; } }

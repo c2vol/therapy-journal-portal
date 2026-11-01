@@ -2,17 +2,18 @@
 {% block content %}
 <section class="card">
   <h2>New entry</h2>
-  <form method="post" action="{{ url_for('add_entry') }}" class="stack">
+  <div class="talk" id="talk">
+    <button type="button" id="record" class="record" aria-pressed="false">
+      <span class="dot"></span><span id="record-label">Tap to talk</span>
+    </button>
+    <p id="record-status" class="hint" aria-live="polite">Talk as long as you like. Tap again when you're done.</p>
+  </div>
+  <form method="post" action="{{ url_for('add_entry') }}" class="stack" id="entry-form">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <textarea id="entry-text" name="text" rows="8" placeholder="What's on your mind? Ramble as much as you like." required></textarea>
-    <div class="row">
-      <button type="button" id="dictate" class="secondary" hidden>🎤 Dictate</button>
-      <button>Save entry</button>
-    </div>
-    <p id="dictate-note" class="hint" hidden>
-      Dictation uses your browser's speech recognition. In Chrome and Edge, your audio is sent to Google or Microsoft to turn it into text; Safari may do it on your device.
-    </p>
+    <textarea id="entry-text" name="text" rows="8" placeholder="Or type here. What you say shows up here too, so you can check it before saving." required></textarea>
+    <div class="row"><button id="save">Save entry</button></div>
   </form>
+  <p class="hint">Your voice is turned into text on this computer and the recording is thrown away. Nothing is sent anywhere.</p>
 </section>
 
 <section class="card">
