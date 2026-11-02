@@ -11,17 +11,19 @@ portal for your therapist can come later, once you know what she wants.
 
 ## Running it
 
-**It's free to run.** You need Python 3.10 or newer. An Anthropic API key is
+**It's free to run.** You need Python 3.10 to 3.13 (the speech-to-text
+library doesn't support 3.14+ yet; on a Mac, `brew install python@3.13`). An Anthropic API key is
 optional (see "Summaries" below).
 
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv   # or any Python 3.10-3.13
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python app.py
 ```
 
-Then open http://127.0.0.1:5000. The first visit asks you to choose a password.
+Then open http://127.0.0.1:5000. Type `127.0.0.1`, not `localhost`: on a Mac,
+AirPlay Receiver also uses port 5000 and can answer "localhost" with a 403. The first visit asks you to choose a password.
 There's no email or account: the app only runs on your computer, for you.
 
 The first time you record, give it a few minutes to download the speech model.
