@@ -197,3 +197,18 @@ def test_build_prompt_contains_rules_and_entries():
     text = summarizer.build_prompt([{"created_at": "2026-11-01T10:00:00+00:00", "text": "hello"}])
     assert text.startswith(summarizer.SYSTEM_PROMPT)
     assert "hello" in text
+
+
+def test_keepalive_resets_idle_lock(setup, monkeypatch):
+    import app as app_module
+    t = [1000.0]
+    monkeypatch.setattr(app_module.time, "time", lambda: t[0])
+    post(setup.client, "/logout")
+    post(setup.client, "/login", password=PASSWORD)
+    for _ in range(3):  # 3 x 15 min = 45 min of recording, pinging along the way
+        t[0] += 15 * 60
+        assert post(setup.client, "/keepalive").request.path == "/keepalive"
+    t[0] += 15 * 60
+    assert setup.client.get("/").status_code == 200  # still unlocked
+    t[0] += 21 * 60
+    assert setup.client.get("/").status_code == 302  # idle lock still works

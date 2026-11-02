@@ -6,7 +6,24 @@
   const status = document.getElementById("record-status");
   const box = document.getElementById("entry-text");
   const csrf = document.querySelector("#entry-form input[name=csrf]").value;
-  let recorder = null, chunks = [], timer = null, started = 0;
+  let recorder = null, chunks = [], timer = null, started = 0, alive = null, wakeLock = null;
+
+  // While recording, ping the app every 4 minutes so the idle lock (20 min)
+  // doesn't kick in during a long recording.
+  function keepAlive() {
+    const form = new FormData();
+    form.append("csrf", csrf);
+    fetch("/keepalive", { method: "POST", body: form, credentials: "same-origin" }).catch(() => {});
+  }
+
+  // Ask the phone to keep the screen on while recording; iPhones stop the
+  // microphone when the screen locks. Not every browser supports this.
+  async function holdScreen() {
+    try { wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { wakeLock = null; }
+  }
+  function releaseScreen() {
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  }
 
   if (!navigator.mediaDevices || !window.MediaRecorder) {
     button.disabled = true;
@@ -37,13 +54,17 @@
     started = Date.now();
     clock();
     timer = setInterval(clock, 1000);
+    alive = setInterval(keepAlive, 4 * 60 * 1000);
+    holdScreen();
     button.classList.add("on");
     button.setAttribute("aria-pressed", "true");
-    status.textContent = "Talk as long as you like. Tap again when you're done.";
+    status.textContent = "Talk as long as you like. Keep the screen on, and tap again when you're done.";
   }
 
   function stop() {
     clearInterval(timer);
+    clearInterval(alive);
+    releaseScreen();
     button.classList.remove("on");
     button.setAttribute("aria-pressed", "false");
     button.disabled = true;
@@ -77,6 +98,13 @@
   }
 
   button.addEventListener("click", () => (recorder ? stop() : start()));
+
+  // Typing a long entry counts as activity too, so the idle lock doesn't throw
+  // away a half-written entry when you finally press Save.
+  let lastPing = Date.now();
+  box.addEventListener("input", () => {
+    if (Date.now() - lastPing > 4 * 60 * 1000) { lastPing = Date.now(); keepAlive(); }
+  });
 
   document.querySelectorAll(".delete-form").forEach((form) => {
     form.addEventListener("submit", (e) => {

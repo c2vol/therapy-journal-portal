@@ -38,7 +38,7 @@ def create_app(db_path: str | None = None, summarize_fn=None,
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Strict",
-        MAX_CONTENT_LENGTH=50 * 1024 * 1024,  # recordings up to ~50 MB
+        MAX_CONTENT_LENGTH=500 * 1024 * 1024,  # recordings up to ~500 MB (several hours)
     )
 
     vault = Vault(db_path or os.environ.get("JOURNAL_DB", "data/journal.db"))
@@ -204,6 +204,13 @@ def create_app(db_path: str | None = None, summarize_fn=None,
         return redirect(url_for("journal"))
 
     # ---- voice ---------------------------------------------------------------
+
+    @app.post("/keepalive")
+    @login_required
+    def keepalive():
+        # The page calls this every few minutes while you're recording, so a long
+        # vent doesn't trip the 20-minute idle lock before it's transcribed.
+        return ("", 204)
 
     @app.post("/transcribe")
     @login_required
