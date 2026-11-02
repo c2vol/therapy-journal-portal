@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Journal summary</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="print">
+  <h1>Journal summary</h1>
+  <p class="hint">Entries from {{ s.period_start|pretty_date if s.period_start else 'the beginning' }} to {{ s.period_end|pretty_date }}. Organized from my own journal entries with an AI tool; not a clinical assessment.</p>
+  <pre class="summary">{{ s.text }}</pre>
+  <p class="noprint"><button id="print">Print or save as PDF</button></p>
+  <script src="{{ url_for('static', filename='print.js') }}"></script>
+</body>
+</html>

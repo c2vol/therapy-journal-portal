@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>New entry</h2>
+  <div class="talk" id="talk">
+    <button type="button" id="record" class="record" aria-pressed="false">
+      <span class="dot"></span><span id="record-label">Tap to talk</span>
+    </button>
+    <p id="record-status" class="hint" aria-live="polite">Talk as long as you like. Tap again when you're done.</p>
+  </div>
+  <form method="post" action="{{ url_for('add_entry') }}" class="stack" id="entry-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <textarea id="entry-text" name="text" rows="8" placeholder="Or type here. What you say shows up here too, so you can check it before saving." required></textarea>
+    <div class="row"><button id="save">Save entry</button></div>
+  </form>
+  <p class="hint">Your voice is turned into text on this computer and the recording is thrown away. Nothing is sent anywhere.</p>
+</section>
+
+<section class="card">
+  <h2>For your next session</h2>
+  <p>
+    {% if last_session %}Last session marked {{ last_session|pretty_date }}.{% else %}No session marked yet, so this covers every entry.{% endif %}
+    {{ since_count }} entr{{ 'y' if since_count == 1 else 'ies' }} {{ 'since then' if last_session else 'so far' }}.
+  </p>
+  <div class="row">
+    {% if api_enabled %}
+    <form method="post" action="{{ url_for('create_summary') }}" id="summary-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button {% if not since_count %}disabled{% endif %}>Summarize for my therapist</button>
+    </form>
+    {% elif since_count %}
+    <a class="button" href="{{ url_for('new_summary') }}">Summarize for my therapist</a>
+    {% else %}
+    <button disabled>Summarize for my therapist</button>
+    {% endif %}
+    <form method="post" action="{{ url_for('mark_session') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="secondary">I had a session today</button>
+    </form>
+  </div>
+  {% if api_enabled %}
+  <p class="hint">Summarizing sends these entries to Anthropic's API (Claude) and nothing else. It organizes what you wrote without interpreting or diagnosing.</p>
+  {% else %}
+  <p class="hint">You'll copy these entries into your own Claude app, and it organizes them without interpreting or diagnosing. Free, no API key needed.</p>
+  {% endif %}
+  {% if summaries %}
+  <h3>Past summaries</h3>
+  <ul class="plain">
+    {% for s in summaries %}
+    <li><a href="{{ url_for('show_summary', summary_id=s.id) }}">{{ s.created_at|pretty_date }}</a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Entries</h2>
+  {% for e in entries %}
+  <article class="entry">
+    <div class="meta">
+      <time datetime="{{ e.created_at }}">{{ e.created_at|pretty_date }}</time>
+      {% if last_session and e.created_at <= last_session %}<span class="tag">before last session</span>{% endif %}
+      <form method="post" action="{{ url_for('delete_entry', entry_id=e.id) }}" class="inline delete-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="link danger">Delete</button>
+      </form>
+    </div>
+    <div class="body">{{ e.text }}</div>
+  </article>
+  {% else %}
+  <p class="hint">No entries yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='journal.js') }}"></script>{% endblock %}

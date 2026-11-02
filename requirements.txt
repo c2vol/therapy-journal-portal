@@ -1,0 +1,4 @@
+flask>=3.0
+cryptography>=43
+anthropic>=2.3
+faster-whisper>=1.1
