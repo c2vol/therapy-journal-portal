@@ -3,6 +3,10 @@
 Run it with `python app.py` and open http://127.0.0.1:5000 in your browser.
 It only listens on your own computer (127.0.0.1), so nobody else on your
 network can reach it.
+
+Run `python app.py --phone` instead to also use it from your phone on the same
+Wi-Fi. That mode uses https (see certs.py) so the microphone works on the phone
+and your entries aren't readable on the network.
 """
 
 import hmac
@@ -295,4 +299,21 @@ def create_app(db_path: str | None = None, summarize_fn=None,
 
 
 if __name__ == "__main__":
-    create_app().run(host="127.0.0.1", port=int(os.environ.get("PORT", 5000)))
+    import sys
+
+    port = int(os.environ.get("PORT", 5000))
+    app = create_app()
+    if "--phone" in sys.argv:
+        # Phone mode: reachable from other devices on your home Wi-Fi, over https.
+        import certs
+
+        cert = certs.ensure_cert(os.path.dirname(os.path.abspath(
+            os.environ.get("JOURNAL_DB", "data/journal.db"))))
+        app.config["SESSION_COOKIE_SECURE"] = True
+        print(f"\nOn your phone (same Wi-Fi), open:  https://{certs.local_name()}:{port}")
+        print(f"   or, if that doesn't load:     https://{certs.lan_ip()}:{port}")
+        print("Your phone will warn that the certificate isn't trusted. That's expected")
+        print("for a home setup: choose 'Show details' / 'Advanced' and continue.\n")
+        app.run(host="0.0.0.0", port=port, ssl_context=cert)
+    else:
+        app.run(host="127.0.0.1", port=port)

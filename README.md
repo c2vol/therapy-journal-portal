@@ -32,6 +32,18 @@ For better accuracy at the cost of speed, start the app with
 
 To run the tests: `pip install pytest && pytest`.
 
+### Using it on your phone (home Wi-Fi)
+
+Start it with `.venv/bin/python app.py --phone` instead. It prints an address
+like `https://your-mac.local:5000`; open that on your phone while it's on the
+same Wi-Fi. The first time, your phone warns that the certificate isn't
+trusted. That's expected for a home setup (the certificate is made on your
+Mac, not bought), so tap "Show details" or "Advanced" and continue. On iPhone,
+you can "Add to Home Screen" from the Share menu so it opens like an app.
+
+In this mode anyone on your Wi-Fi can reach the login page (not your entries,
+which still need your password), and the Mac has to be on with the app running.
+
 ## How to use it
 
 1. Whenever something's on your mind, press **Tap to talk** and say it, as long
